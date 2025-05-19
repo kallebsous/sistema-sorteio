@@ -172,7 +172,8 @@ export const ProvedorEscalonador: React.FC<{ children: React.ReactNode }> = ({ c
   }
 
   const gerarProcessosAleatorios = (quantidade: number) => {
-    const novosProcessos = Array.from({ length: quantidade }, (_, i) => {
+    const qtd = Math.max(1, Math.floor(Number(quantidade)) || 1); // Garante pelo menos 1 processo
+    const novosProcessos = Array.from({ length: qtd }, (_, i) => {
       const tipo: TipoProcesso = Math.random() > 0.5 ? "cpu" : "io"
       return {
         id: gerarIdUnico(),
@@ -262,7 +263,7 @@ export const ProvedorEscalonador: React.FC<{ children: React.ReactNode }> = ({ c
           }
 
           tempoExecutando = 0
-          if (processoAtual.tempoResposta === null) {
+          if (processoAtual && processoAtual.tempoResposta === null) {
             processoAtual.tempoResposta = tempoAtual - processoAtual.tempoChegada
           }
         }

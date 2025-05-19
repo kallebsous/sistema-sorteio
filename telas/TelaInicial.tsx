@@ -119,16 +119,16 @@ const TelaInicial = () => {
       marginTop: 16,
     },
     logo: {
-      width: 80,
-      height: 80,
-      marginBottom: 8,
+      width: 260,
+      height: 260,
+      marginBottom: 16,
     },
   })
 
   return (
     <ScrollView style={estilos.container}>
       <View style={estilos.cabecalho}>
-        <Image source={{ uri: "https://reactnative.dev/img/tiny_logo.png" }} style={estilos.logo} />
+        <Image source={require("../assets/Design sem nome (23).png")} style={estilos.logo} resizeMode="contain" />
         <Text style={estilos.titulo}>Escalonador de Loteria Preemptivo</Text>
         <Text style={estilos.subtitulo}>
           Uma ferramenta educacional para entender o escalonamento de loteria preemptivo em sistemas operacionais
@@ -182,6 +182,14 @@ const TelaInicial = () => {
           <Ionicons name="settings-outline" size={24} color={cores.primaria} />
         </View>
         <Text style={estilos.textoMenu}>Configurações</Text>
+        <Ionicons name="chevron-forward" size={20} color={cores.texto} />
+      </TouchableOpacity>
+
+      <TouchableOpacity style={estilos.itemMenu} onPress={() => navigation.navigate("SimuladorLottery" as never)}>
+        <View style={estilos.iconeMenu}>
+          <Ionicons name="shuffle" size={24} color={cores.primaria} />
+        </View>
+        <Text style={estilos.textoMenu}>Simulador Lottery Scheduling</Text>
         <Ionicons name="chevron-forward" size={20} color={cores.texto} />
       </TouchableOpacity>
 

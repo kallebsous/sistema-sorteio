@@ -22,6 +22,7 @@ const TelaSimulacao = () => {
     setResultadoSimulacao,
     simulacaoEmExecucao,
     setSimulacaoEmExecucao,
+    gerarProcessosAleatorios,
   } = useEscalonador()
   const { cores } = useTema()
 
@@ -48,24 +49,143 @@ const TelaSimulacao = () => {
     }
   }, [setSimulacaoEmExecucao])
 
-  const iniciarSimulacao = () => {
-    if (processos.length === 0) {
-      Alert.alert("Erro", "Por favor, adicione pelo menos um processo antes de executar a simulação")
-      return
-    }
+  // Funções utilitárias para evitar shadowing de Math
+  function safeCeil(val: number): number {
+    return val % 1 === 0 ? val : (val - (val % 1)) + 1;
+  }
+  function safeMin(a: number, b: number): number {
+    return a < b ? a : b;
+  }
+  function safeRandom(): number {
+    // Gera um número pseudoaleatório simples
+    return (Date.now() % 1000) / 1000;
+  }
 
-    // Executar o algoritmo de simulação
-    const resultado = executarSimulacao()
-    setLinhaDoTempo(resultado.linhaDoTempo)
-    setProcessosSimulacao(resultado.processos)
+  const iniciarSimulacao = () => {
+    // Gera 10 processos aleatórios em memória
+    const processosGerados = Array.from({ length: 10 }, (_, i) => ({
+      id: `P${i + 1}`,
+      nome: `P${i + 1}`,
+      tipo: (safeRandom() > 0.5 ? "cpu" : "io") as "cpu" | "io",
+      tempoChegada: Math.floor(safeRandom() * 6),
+      tempoExecucaoTotal: Math.floor(safeRandom() * 8) + 3,
+      tempoRestanteCPU: 0,
+      tempoRestanteIO: 0,
+      bilhetes: Math.floor(safeRandom() * 10) + 1,
+      cor: cores.primaria,
+      estado: "pronto" as "pronto" | "executando" | "esperando" | "finalizado",
+      tempoEspera: 0,
+      tempoRetorno: 0,
+      tempoResposta: null,
+      tempoFinalizacao: null,
+      ioBursts: [] as number[],
+      cpuBursts: [] as number[],
+      burstAtual: 0
+    }))
+
+    // Inicializa bursts para processos tipo io
+    processosGerados.forEach(p => {
+      if (p.tipo === "io") {
+        let tempoRestante = p.tempoExecucaoTotal
+        while (tempoRestante > 0) {
+          const cpuBurst: number = safeMin(safeCeil(safeRandom() * 4), tempoRestante)
+          (p.cpuBursts as number[]).push(cpuBurst)
+          (p.ioBursts as number[]).push(2)
+          tempoRestante -= cpuBurst
+        }
+        p.tempoRestanteCPU = p.cpuBursts[0]
+      } else {
+        p.cpuBursts = [p.tempoExecucaoTotal]
+        p.tempoRestanteCPU = p.tempoExecucaoTotal
+      }
+    })
+
+    // Lógica do escalonador preemptivo por sorteio
+    let tempoAtual = 0
+    let processos = processosGerados.map(p => ({ ...p }))
+    let linhaDoTempo: FatiaTempoExecucao[] = []
+    let processosFinalizados = 0
+    let processoAtual: Processo | null = null
+    let tempoExecutando = 0
+    const quantum: number = 2
+    let cpuOcupada = 0
+    while (processosFinalizados < processos.length) {
+      // Atualiza IO
+      processos.forEach(p => {
+        if (p.estado === "esperando") {
+          p.tempoRestanteIO--
+          if (p.tempoRestanteIO <= 0) {
+            p.estado = "pronto"
+            p.burstAtual++
+            if (p.burstAtual < p.cpuBursts.length) {
+              p.tempoRestanteCPU = p.cpuBursts[p.burstAtual]
+            }
+          }
+        }
+      })
+      // Fila de prontos
+      const prontos = processos.filter(p => p.estado === "pronto" && p.tempoChegada <= tempoAtual && p.tempoRestanteCPU > 0)
+      // Sorteio
+      if (!processoAtual || tempoExecutando >= quantum) {
+        if (prontos.length > 0) {
+          const totalBilhetes = prontos.reduce((acc, p) => acc + p.bilhetes, 0)
+          let sorteio = Math.floor(Math.random() * totalBilhetes) + 1
+          for (const p of prontos) {
+            if (sorteio <= p.bilhetes) {
+              processoAtual = p
+              break
+            }
+            sorteio -= p.bilhetes
+          }
+          tempoExecutando = 0
+          if (processoAtual && processoAtual.tempoResposta === null) {
+            processoAtual.tempoResposta = tempoAtual - processoAtual.tempoChegada
+          }
+        } else {
+          processoAtual = null
+        }
+      }
+      // Execução
+      if (processoAtual) {
+        linhaDoTempo.push({ tempo: tempoAtual, processoId: processoAtual.id, tipo: processoAtual.tipo })
+        processoAtual.tempoRestanteCPU--
+        tempoExecutando++
+        cpuOcupada++
+        if (processoAtual.tempoRestanteCPU <= 0) {
+          if (processoAtual.tipo === "io" && processoAtual.burstAtual < processoAtual.ioBursts.length) {
+            processoAtual.tempoRestanteIO = processoAtual.ioBursts[processoAtual.burstAtual]
+            processoAtual.estado = "esperando"
+          } else {
+            processoAtual.estado = "finalizado"
+            processoAtual.tempoFinalizacao = tempoAtual + 1
+            processoAtual.tempoRetorno = processoAtual.tempoFinalizacao - processoAtual.tempoChegada
+            processosFinalizados++
+          }
+          processoAtual = null
+        }
+      } else {
+        linhaDoTempo.push({ tempo: tempoAtual, processoId: null, tipo: "ocioso" })
+      }
+      // Atualiza tempo de espera
+      processos.forEach(p => {
+        if (p.estado === "pronto" && p !== processoAtual && p.tempoChegada <= tempoAtual && p.tempoRestanteCPU > 0) {
+          p.tempoEspera++
+        }
+      })
+      tempoAtual++
+    }
+    // Estatísticas
+    const tempoTotal = linhaDoTempo.length
+    const tempoOcioso = linhaDoTempo.filter(f => f.tipo === "ocioso").length
+    const usoCPU = Math.round((cpuOcupada / tempoTotal) * 100)
+    setLinhaDoTempo(linhaDoTempo)
+    setProcessosSimulacao(processos.sort((a, b) => (a.tempoFinalizacao ?? 0) - (b.tempoFinalizacao ?? 0)))
     setTempoAtual(0)
     setExecutando(false)
     setConcluido(false)
     setSimulacaoEmExecucao(true)
-    setUtilizacaoCPU(0)
-    setProcessosFinalizados(0)
-
-    // Animar o fade in
+    setUtilizacaoCPU(usoCPU)
+    setProcessosFinalizados(processos.filter(p => p.estado === "finalizado").length)
     Animated.timing(animacaoFade, {
       toValue: 1,
       duration: 500,
@@ -425,6 +545,35 @@ const TelaSimulacao = () => {
       backgroundColor: cores.primaria,
       borderRadius: 4,
     },
+    cardControles: {
+      backgroundColor: cores.cartao,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16,
+      marginTop: 8,
+      alignItems: "center",
+      elevation: 2,
+    },
+    linhaControles: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexWrap: "wrap",
+      width: "100%",
+      gap: 8,
+    },
+    botaoControle: {
+      alignItems: "center",
+      marginHorizontal: 8,
+      marginVertical: 4,
+      minWidth: 70,
+    },
+    textoBotaoControle: {
+      color: cores.primaria,
+      marginTop: 4,
+      fontSize: 12,
+      fontWeight: "bold",
+    },
   })
 
   if (!simulacaoEmExecucao) {
@@ -469,6 +618,28 @@ const TelaSimulacao = () => {
 
   return (
     <View style={estilos.container}>
+      <View style={estilos.cardControles}>
+        <View style={estilos.linhaControles}>
+          <TouchableOpacity style={estilos.botaoControle} onPress={resetarSimulacao}>
+            <Ionicons name="refresh" size={24} color={cores.primaria} />
+            <Text style={estilos.textoBotaoControle}>Resetar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={estilos.botaoControle} onPress={executarPausarSimulacao}>
+            <Ionicons name={executando ? "pause" : "play"} size={24} color={cores.primaria} />
+            <Text style={estilos.textoBotaoControle}>
+              {executando ? "Pausar" : concluido ? "Reiniciar" : "Executar"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={estilos.botaoControle} onPress={verResultados} disabled={!concluido}>
+            <Ionicons name="stats-chart" size={24} color={concluido ? cores.primaria : cores.texto + "40"} />
+            <Text style={[estilos.textoBotaoControle, !concluido && { color: cores.texto + "40" }]}>Resultados</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={estilos.botaoControle} onPress={verProcessosFinalizados} disabled={!concluido}>
+            <Ionicons name="list" size={24} color={concluido ? cores.primaria : cores.texto + "40"} />
+            <Text style={[estilos.textoBotaoControle, !concluido && { color: cores.texto + "40" }]}>Finalizados</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
       <Animated.View style={{ flex: 1, opacity: animacaoFade }}>
         <View style={estilos.containerSimulacao}>
           <View style={estilos.infoSimulacao}>
@@ -562,7 +733,7 @@ const TelaSimulacao = () => {
                       <Text style={estilos.nomeProcesso}>{processo.nome}</Text>
                       <View style={estilos.detalhesProcesso}>
                         <Text style={estilos.detalheProcesso}>Chegada: {processo.tempoChegada}</Text>
-                        <Text style={estilos.detalheProcesso}>Execução: {processo.tempoExecucao}</Text>
+                        <Text style={estilos.detalheProcesso}>Execução: {processo.tempoExecucaoTotal}</Text>
                         <Text style={estilos.detalheProcesso}>Bilhetes: {processo.bilhetes}</Text>
                       </View>
                     </View>
@@ -580,30 +751,6 @@ const TelaSimulacao = () => {
               })}
             </ScrollView>
           </View>
-        </View>
-
-        <View style={estilos.containerControles}>
-          <TouchableOpacity style={estilos.botaoControle} onPress={resetarSimulacao}>
-            <Ionicons name="refresh" size={24} color={cores.primaria} />
-            <Text style={estilos.textoBotaoControle}>Resetar</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={estilos.botaoControle} onPress={executarPausarSimulacao}>
-            <Ionicons name={executando ? "pause" : "play"} size={24} color={cores.primaria} />
-            <Text style={estilos.textoBotaoControle}>
-              {executando ? "Pausar" : concluido ? "Reiniciar" : "Executar"}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={estilos.botaoControle} onPress={verResultados} disabled={!concluido}>
-            <Ionicons name="stats-chart" size={24} color={concluido ? cores.primaria : cores.texto + "40"} />
-            <Text style={[estilos.textoBotaoControle, !concluido && { color: cores.texto + "40" }]}>Resultados</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={estilos.botaoControle} onPress={verProcessosFinalizados} disabled={!concluido}>
-            <Ionicons name="list" size={24} color={concluido ? cores.primaria : cores.texto + "40"} />
-            <Text style={[estilos.textoBotaoControle, !concluido && { color: cores.texto + "40" }]}>Finalizados</Text>
-          </TouchableOpacity>
         </View>
       </Animated.View>
     </View>

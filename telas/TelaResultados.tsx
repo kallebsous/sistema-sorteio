@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
@@ -170,6 +171,7 @@ const TelaGerenciadorProcessos = () => {
 
   return (
     <View style={[estilos.container, { backgroundColor: cores.fundo }]}>
+      <Image source={require('../assets/caencss-logo-mobile.png')} style={estilos.logo} />
       <View style={estilos.controleSuperior}>
         <View style={estilos.geracaoAleatoria}>
           <TextInput
@@ -446,6 +448,11 @@ const estilos = StyleSheet.create({
   textoBotaoModal: {
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    marginBottom: 16,
   },
 });
 

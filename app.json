@@ -4,25 +4,33 @@
     "slug": "escalonador-loteria-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/caencss-logo-mobile.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/caencss-logo-mobile.png",
       "resizeMode": "contain",
       "backgroundColor": "#6200ee"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/caencss-logo-mobile.png",
         "backgroundColor": "#6200ee"
-      }
+      },
+      "package": "com.escalonadorloteria.app"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/caencss-logo-mobile.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e828a5e7-19c8-49d9-aace-918451703fb1"
+      }
     }
   }
 }

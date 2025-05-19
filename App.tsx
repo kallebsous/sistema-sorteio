@@ -12,6 +12,7 @@ import TelaConfiguracoes from "./telas/TelaConfiguracoes"
 import TelaTutorial from "./telas/TelaTutorial"
 import TelaResultados from "./telas/TelaResultados"
 import TelaProcessosFinalizados from "./telas/TelaProcessosFinalizados"
+import SimuladorLottery from "./telas/SimuladorLottery"
 
 // Contexto
 import { ProvedorEscalonador } from "./contexto/ContextoEscalonador"
@@ -59,6 +60,7 @@ export default function App() {
                 />
                 <Pilha.Screen name="Tutorial" component={TelaTutorial} options={{ title: "Como Funciona" }} />
                 <Pilha.Screen name="Configuracoes" component={TelaConfiguracoes} options={{ title: "Configurações" }} />
+                <Pilha.Screen name="SimuladorLottery" component={SimuladorLottery} options={{ title: "Lottery Scheduling" }} />
               </Pilha.Navigator>
             </NavigationContainer>
           </ProvedorEscalonador>

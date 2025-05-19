@@ -29,31 +29,31 @@ interface ContextoTemaType {
 }
 
 const coresClaro: CoresTema = {
-  fundo: "#f5f5f5",
-  cartao: "#ffffff",
-  texto: "#333333",
-  borda: "#e0e0e0",
-  primaria: "#6200ee",
-  secundaria: "#03dac6",
-  destaque: "#ff5252",
-  erro: "#b00020",
-  fundoProcesso: "#f0f0f0",
-  fundoLinhaDoTempo: "#e8eaf6",
-  corOciosa: "#e0e0e0",
+  fundo: "#FFF8E1",
+  cartao: "#FFF3E0",
+  texto: "#3E2723",
+  borda: "#FFD54F",
+  primaria: "#FFC107",
+  secundaria: "#FF7043",
+  destaque: "#D84315",
+  erro: "#C62828",
+  fundoProcesso: "#FFE0B2",
+  fundoLinhaDoTempo: "#FFFDE7",
+  corOciosa: "#FFB300",
 }
 
 const coresEscuro: CoresTema = {
-  fundo: "#121212",
-  cartao: "#1e1e1e",
-  texto: "#e0e0e0",
-  borda: "#333333",
-  primaria: "#bb86fc",
-  secundaria: "#03dac6",
-  destaque: "#cf6679",
-  erro: "#cf6679",
-  fundoProcesso: "#2d2d2d",
-  fundoLinhaDoTempo: "#1a237e",
-  corOciosa: "#424242",
+  fundo: "#FFF8E1",
+  cartao: "#FFF3E0",
+  texto: "#3E2723",
+  borda: "#FFD54F",
+  primaria: "#FFC107",
+  secundaria: "#FF7043",
+  destaque: "#D84315",
+  erro: "#C62828",
+  fundoProcesso: "#FFE0B2",
+  fundoLinhaDoTempo: "#FFFDE7",
+  corOciosa: "#FFB300",
 }
 
 const ContextoTema = createContext<ContextoTemaType | undefined>(undefined)
